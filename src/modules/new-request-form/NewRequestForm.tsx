@@ -1,5 +1,5 @@
 import type { AnswerBot, RequestForm } from "./data-types";
-import { Fragment, useCallback, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { TicketFormField } from "./ticket-form-field/TicketFormField";
 import { ParentTicketField } from "./parent-ticket-field/ParentTicketField";
 import { Anchor, Button } from "@zendeskgarden/react-buttons";
@@ -156,6 +156,28 @@ export function NewRequestForm({
   const answerBotGenerativeModalEnabled =
     !answerBotModalEnabled && answerBot.request_id;
 
+  // Get the selected ticket form name and set it as the subject field value
+  useEffect(() => {
+    if (ticket_form_field.value) {
+      const selectedForm = ticket_form_field.options.find(
+        (option) => option.value === String(ticket_form_field.value)
+      );
+      if (selectedForm) {
+        setTicketFields((prevFields) => {
+          const subjectField = prevFields.find((field) => field.type === "subject");
+          if (subjectField && subjectField.value !== selectedForm.name) {
+            return prevFields.map((field) =>
+              field.name === subjectField.name
+                ? { ...field, value: selectedForm.name }
+                : field
+            );
+          }
+          return prevFields;
+        });
+      }
+    }
+  }, [ticket_form_field.value, ticket_form_field.options]);
+
   return (
     <>
       {parentId && (
@@ -206,17 +228,14 @@ export function NewRequestForm({
         )}
         {visibleFields.map((field) => {
           if (field.type === "subject") {
+            // Hide the subject field but keep it as a hidden input with the form name as value
             return (
-              <Fragment key={field.name}>
-                <Input
-                  field={field}
-                  onChange={(value) => handleChange(field, value)}
-                />
-                <SuggestedArticles
-                  query={field.value as string | undefined}
-                  locale={locale}
-                />
-              </Fragment>
+              <input
+                key={field.name}
+                type="hidden"
+                name={field.name}
+                value={(field.value as string) || ""}
+              />
             );
           } else if (field.type === "description") {
             return (
